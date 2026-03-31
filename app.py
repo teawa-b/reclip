@@ -1,9 +1,9 @@
 import os
 import uuid
 import glob
-import json
-import subprocess
 import threading
+
+import yt_dlp
 from flask import Flask, request, jsonify, send_file, render_template
 
 app = Flask(__name__)
@@ -22,23 +22,30 @@ def run_download(job_id, url, format_choice, format_id):
     job = jobs[job_id]
     out_template = os.path.join(DOWNLOAD_DIR, f"{job_id}.%(ext)s")
 
-    cmd = ["yt-dlp", "--no-playlist", "-o", out_template]
+    ydl_opts = {
+        "noplaylist": True,
+        "outtmpl": out_template,
+        "quiet": True,
+        "no_warnings": True,
+        "socket_timeout": 300,  # 5 min limit per network operation
+    }
 
     if format_choice == "audio":
-        cmd += ["-x", "--audio-format", "mp3"]
+        ydl_opts["format"] = "bestaudio/best"
+        ydl_opts["postprocessors"] = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+        }]
     elif format_id:
-        cmd += ["-f", f"{format_id}+bestaudio/best", "--merge-output-format", "mp4"]
+        ydl_opts["format"] = f"{format_id}+bestaudio/best"
+        ydl_opts["merge_output_format"] = "mp4"
     else:
-        cmd += ["-f", "bestvideo+bestaudio/best", "--merge-output-format", "mp4"]
-
-    cmd.append(url)
+        ydl_opts["format"] = "bestvideo+bestaudio/best"
+        ydl_opts["merge_output_format"] = "mp4"
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            job["status"] = "error"
-            job["error"] = result.stderr.strip().split("\n")[-1]
-            return
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
         files = glob.glob(os.path.join(DOWNLOAD_DIR, f"{job_id}.*"))
         if not files:
@@ -70,12 +77,12 @@ def run_download(job_id, url, format_choice, format_id):
             job["filename"] = f"{safe_title}{ext}" if safe_title else os.path.basename(chosen)
         else:
             job["filename"] = os.path.basename(chosen)
-    except subprocess.TimeoutExpired:
+    except yt_dlp.utils.DownloadError as e:
         job["status"] = "error"
-        job["error"] = "Download timed out (5 min limit)"
-    except Exception as e:
+        job["error"] = str(e).strip().split("\n")[-1]
+    except Exception:
         job["status"] = "error"
-        job["error"] = str(e)
+        job["error"] = "Download failed"
 
 
 @app.route("/")
@@ -90,13 +97,15 @@ def get_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    cmd = ["yt-dlp", "--no-playlist", "-j", url]
+    ydl_opts = {
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "socket_timeout": 60,  # 1 min limit for metadata fetch
+    }
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        if result.returncode != 0:
-            return jsonify({"error": result.stderr.strip().split("\n")[-1]}), 400
-
-        info = json.loads(result.stdout)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
 
         # Build quality options — keep best format per resolution
         best_by_height = {}
@@ -123,10 +132,10 @@ def get_info():
             "uploader": info.get("uploader", ""),
             "formats": formats,
         })
-    except subprocess.TimeoutExpired:
-        return jsonify({"error": "Timed out fetching video info"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except yt_dlp.utils.DownloadError:
+        return jsonify({"error": "Could not fetch video info"}), 400
+    except Exception:
+        return jsonify({"error": "Could not fetch video info"}), 400
 
 
 @app.route("/api/download", methods=["POST"])
