@@ -7,7 +7,12 @@ import threading
 from flask import Flask, request, jsonify, send_file, render_template
 
 app = Flask(__name__)
-DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "downloads")
+# Use /tmp/downloads by default so the app works on read-only serverless
+# filesystems (e.g. Vercel). Override via the DOWNLOAD_DIR env variable for
+# self-hosted or Docker deployments.
+DOWNLOAD_DIR = os.environ.get(
+    "DOWNLOAD_DIR", os.path.join("/tmp", "downloads")
+)
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 jobs = {}
