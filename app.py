@@ -27,7 +27,7 @@ def run_download(job_id, url, format_choice, format_id):
         "outtmpl": out_template,
         "quiet": True,
         "no_warnings": True,
-        "socket_timeout": 300,
+        "socket_timeout": 300,  # 5 min limit per network operation
     }
 
     if format_choice == "audio":
@@ -80,9 +80,9 @@ def run_download(job_id, url, format_choice, format_id):
     except yt_dlp.utils.DownloadError as e:
         job["status"] = "error"
         job["error"] = str(e).strip().split("\n")[-1]
-    except Exception as e:
+    except Exception:
         job["status"] = "error"
-        job["error"] = str(e)
+        job["error"] = "Download failed"
 
 
 @app.route("/")
@@ -101,7 +101,7 @@ def get_info():
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
-        "socket_timeout": 60,
+        "socket_timeout": 60,  # 1 min limit for metadata fetch
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -132,10 +132,10 @@ def get_info():
             "uploader": info.get("uploader", ""),
             "formats": formats,
         })
-    except yt_dlp.utils.DownloadError as e:
-        return jsonify({"error": str(e).strip().split("\n")[-1]}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except yt_dlp.utils.DownloadError:
+        return jsonify({"error": "Could not fetch video info"}), 400
+    except Exception:
+        return jsonify({"error": "Could not fetch video info"}), 400
 
 
 @app.route("/api/download", methods=["POST"])
