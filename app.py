@@ -1,21 +1,50 @@
 import os
 import uuid
 import glob
+import time
 import threading
 
+import imageio_ffmpeg
 import yt_dlp
 from flask import Flask, request, jsonify, send_file, render_template
 
 app = Flask(__name__)
-# Use /tmp/downloads by default so the app works on read-only serverless
-# filesystems (e.g. Vercel). Override via the DOWNLOAD_DIR env variable for
-# self-hosted or Docker deployments.
-DOWNLOAD_DIR = os.environ.get(
-    "DOWNLOAD_DIR", os.path.join("/tmp", "downloads")
-)
+DOWNLOAD_DIR = os.environ.get("DOWNLOAD_DIR", os.path.join("/tmp", "downloads"))
+JOB_TTL_SECONDS = int(os.environ.get("JOB_TTL_SECONDS", 60 * 60))
+FFMPEG_LOCATION = os.environ.get("FFMPEG_LOCATION") or imageio_ffmpeg.get_ffmpeg_exe()
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 jobs = {}
+jobs_lock = threading.Lock()
+
+
+def cleanup_old_jobs():
+    cutoff = time.time() - JOB_TTL_SECONDS
+    with jobs_lock:
+        expired = [
+            job_id for job_id, job in jobs.items()
+            if job.get("created_at", cutoff) < cutoff
+        ]
+        expired_files = [jobs[job_id].get("file") for job_id in expired]
+        for job_id in expired:
+            jobs.pop(job_id, None)
+
+    for path in expired_files:
+        if path:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+
+def update_job(job_id, **values):
+    with jobs_lock:
+        if job_id in jobs:
+            jobs[job_id].update(values)
+
+
+def get_json_body():
+    return request.get_json(silent=True) or {}
 
 
 def run_download(job_id, url, format_choice, format_id):
@@ -26,8 +55,10 @@ def run_download(job_id, url, format_choice, format_id):
         "noplaylist": True,
         "outtmpl": out_template,
         "quiet": True,
+        "noprogress": True,
         "no_warnings": True,
         "socket_timeout": 300,  # 5 min limit per network operation
+        "ffmpeg_location": FFMPEG_LOCATION,
     }
 
     if format_choice == "audio":
@@ -49,8 +80,11 @@ def run_download(job_id, url, format_choice, format_id):
 
         files = glob.glob(os.path.join(DOWNLOAD_DIR, f"{job_id}.*"))
         if not files:
-            job["status"] = "error"
-            job["error"] = "Download completed but no file was found"
+            update_job(
+                job_id,
+                status="error",
+                error="Download completed but no file was found",
+            )
             return
 
         if format_choice == "audio":
@@ -67,22 +101,19 @@ def run_download(job_id, url, format_choice, format_id):
                 except OSError:
                     pass
 
-        job["status"] = "done"
-        job["file"] = chosen
         ext = os.path.splitext(chosen)[1]
         title = job.get("title", "").strip()
-        # Sanitize title for filename
         if title:
-            safe_title = "".join(c for c in title if c not in r'\/:*?"<>|').strip()[:20].strip()
-            job["filename"] = f"{safe_title}{ext}" if safe_title else os.path.basename(chosen)
+            safe_title = "".join(c for c in title if c not in r'\/:*?"<>|').strip()[:80].strip()
+            filename = f"{safe_title}{ext}" if safe_title else os.path.basename(chosen)
         else:
-            job["filename"] = os.path.basename(chosen)
+            filename = os.path.basename(chosen)
+
+        update_job(job_id, status="done", file=chosen, filename=filename)
     except yt_dlp.utils.DownloadError as e:
-        job["status"] = "error"
-        job["error"] = str(e).strip().split("\n")[-1]
+        update_job(job_id, status="error", error=str(e).strip().split("\n")[-1])
     except Exception:
-        job["status"] = "error"
-        job["error"] = "Download failed"
+        update_job(job_id, status="error", error="Download failed")
 
 
 @app.route("/")
@@ -90,9 +121,15 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/healthz")
+def healthz():
+    return jsonify({"status": "ok"})
+
+
 @app.route("/api/info", methods=["POST"])
 def get_info():
-    data = request.json
+    cleanup_old_jobs()
+    data = get_json_body()
     url = data.get("url", "").strip()
     if not url:
         return jsonify({"error": "No URL provided"}), 400
@@ -100,6 +137,7 @@ def get_info():
     ydl_opts = {
         "noplaylist": True,
         "quiet": True,
+        "noprogress": True,
         "no_warnings": True,
         "socket_timeout": 60,  # 1 min limit for metadata fetch
     }
@@ -140,7 +178,8 @@ def get_info():
 
 @app.route("/api/download", methods=["POST"])
 def start_download():
-    data = request.json
+    cleanup_old_jobs()
+    data = get_json_body()
     url = data.get("url", "").strip()
     format_choice = data.get("format", "video")
     format_id = data.get("format_id")
@@ -150,7 +189,13 @@ def start_download():
         return jsonify({"error": "No URL provided"}), 400
 
     job_id = uuid.uuid4().hex[:10]
-    jobs[job_id] = {"status": "downloading", "url": url, "title": title}
+    with jobs_lock:
+        jobs[job_id] = {
+            "status": "downloading",
+            "url": url,
+            "title": title,
+            "created_at": time.time(),
+        }
 
     thread = threading.Thread(target=run_download, args=(job_id, url, format_choice, format_id))
     thread.daemon = True
@@ -161,7 +206,9 @@ def start_download():
 
 @app.route("/api/status/<job_id>")
 def check_status(job_id):
-    job = jobs.get(job_id)
+    cleanup_old_jobs()
+    with jobs_lock:
+        job = jobs.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
     return jsonify({
@@ -173,7 +220,9 @@ def check_status(job_id):
 
 @app.route("/api/file/<job_id>")
 def download_file(job_id):
-    job = jobs.get(job_id)
+    cleanup_old_jobs()
+    with jobs_lock:
+        job = jobs.get(job_id)
     if not job or job["status"] != "done":
         return jsonify({"error": "File not ready"}), 404
     return send_file(job["file"], as_attachment=True, download_name=job["filename"])

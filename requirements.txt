@@ -1,2 +1,4 @@
 flask
+gunicorn
+imageio-ffmpeg
 yt-dlp

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: reclip
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /healthz
+    envVars:
+      - key: JOB_TTL_SECONDS
+        value: 3600

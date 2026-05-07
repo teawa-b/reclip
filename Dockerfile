@@ -12,4 +12,5 @@ COPY . .
 
 EXPOSE 8899
 ENV HOST=0.0.0.0
-CMD ["python", "app.py"]
+ENV FFMPEG_LOCATION=/usr/bin/ffmpeg
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8899} --workers ${WEB_CONCURRENCY:-1} --threads ${WEB_THREADS:-4} --timeout ${WEB_TIMEOUT:-600} app:app"]
