@@ -1,4 +1,4 @@
-# ReClip
+# Shayloader
 
 A self-hosted, open-source video and audio downloader with a clean web UI. Paste links from YouTube, TikTok, Instagram, Twitter/X, and 1000+ other sites, then download as MP4 or MP3.
 
@@ -7,7 +7,7 @@ A self-hosted, open-source video and audio downloader with a clean web UI. Paste
 
 https://github.com/user-attachments/assets/419d3e50-c933-444b-8cab-a9724986ba05
 
-![ReClip MP3 Mode](assets/preview-mp3.png)
+![Shayloader MP3 Mode](assets/preview-mp3.png)
 
 ## Features
 
@@ -40,8 +40,8 @@ Open http://localhost:8899.
 ### Docker
 
 ```bash
-docker build -t reclip .
-docker run -p 8899:8899 reclip
+docker build -t shayloader .
+docker run -p 8899:8899 shayloader
 ```
 
 Open http://localhost:8899.
@@ -56,7 +56,7 @@ Open http://localhost:8899.
 
 ## Hosting
 
-ReClip is best hosted as a long-running Docker web service because downloads can take time, need ffmpeg, and temporarily store files before the browser saves them.
+Shayloader is best hosted as a long-running Docker web service because downloads can take time, need ffmpeg, and temporarily store files before the browser saves them.
 
 Recommended options:
 
@@ -77,8 +77,8 @@ The included blueprint uses Render's free web service plan for testing. If you u
 ### Generic Docker Host
 
 ```bash
-docker build -t reclip .
-docker run -d --name reclip -p 8899:8899 --restart unless-stopped reclip
+docker build -t shayloader .
+docker run -d --name shayloader -p 8899:8899 --restart unless-stopped shayloader
 ```
 
 Then point your domain or reverse proxy at port 8899.

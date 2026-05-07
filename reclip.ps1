@@ -18,6 +18,6 @@ if (-not $env:PORT) {
 }
 
 Write-Host ""
-Write-Host "  ReClip is running at http://localhost:$env:PORT"
+Write-Host "  Shayloader is running at http://localhost:$env:PORT"
 Write-Host ""
 & ".\.venv\Scripts\python.exe" app.py

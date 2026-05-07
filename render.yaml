@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: reclip
+    name: shayloader
     runtime: docker
     plan: free
     autoDeploy: true

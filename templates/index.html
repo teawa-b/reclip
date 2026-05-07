@@ -3,418 +3,907 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ReClip — Free Media Downloader</title>
+  <title>Shayloader - Free Media Downloader</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f4f1eb;
-      --fg: #3a3a38;
-      --accent: #e85d2a;
-      --accent-hover: #d04e1f;
-      --muted: #9c9889;
-      --card: #fff;
-      --card-border: #e2ded6;
-      --success: #2d8a4e;
-      --error: #c43d3d;
-      --radius: 14px;
-      --shimmer: linear-gradient(90deg, #ebe8e2 25%, #f0ede7 50%, #ebe8e2 75%);
+      --bg: #f7fbff;
+      --bg-soft: #eef8ff;
+      --surface: rgba(255, 255, 255, 0.86);
+      --surface-solid: #ffffff;
+      --surface-muted: #e9f6fe;
+      --fg: #13202a;
+      --muted: #687785;
+      --faint: #8fa3b5;
+      --accent: #8fd3ff;
+      --accent-strong: #58bbed;
+      --accent-soft: rgba(143, 211, 255, 0.24);
+      --border: rgba(148, 189, 214, 0.32);
+      --shadow: 0 24px 70px -38px rgba(64, 128, 171, 0.52);
+      --success: #2f9a63;
+      --error: #d14f62;
+      --radius-lg: 32px;
+      --radius-md: 22px;
+      --radius-sm: 14px;
+      --shimmer: linear-gradient(105deg, rgba(143, 211, 255, 0.16) 20%, rgba(255,255,255,0.82) 42%, rgba(143, 211, 255, 0.18) 64%);
+      color-scheme: light;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body[data-theme="dark"] {
+      --bg: #0f171e;
+      --bg-soft: #132431;
+      --surface: rgba(21, 32, 42, 0.86);
+      --surface-solid: #172531;
+      --surface-muted: #203545;
+      --fg: #f4fbff;
+      --muted: #adc1cf;
+      --faint: #7f98aa;
+      --accent: #8fd3ff;
+      --accent-strong: #66c6f8;
+      --accent-soft: rgba(143, 211, 255, 0.18);
+      --border: rgba(169, 219, 249, 0.22);
+      --shadow: 0 28px 80px -44px rgba(89, 191, 255, 0.48);
+      --success: #72d59d;
+      --error: #ff8493;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'DM Mono', monospace;
-      background: var(--bg);
+      margin: 0;
+      min-height: 100dvh;
+      font-family: 'Outfit', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, var(--accent-soft), transparent 28rem),
+        linear-gradient(140deg, var(--bg) 0%, var(--bg-soft) 46%, var(--bg) 100%);
       color: var(--fg);
-      min-height: 100vh;
       overflow-x: hidden;
+      transition: background-color 240ms ease, color 240ms ease;
     }
 
     body::after {
       content: '';
       position: fixed;
       inset: 0;
-      opacity: 0.03;
       pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      background-size: 128px;
+      opacity: 0.028;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 160px;
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 44px;
     }
 
     .page {
-      max-width: 620px;
+      width: min(1120px, calc(100% - 32px));
+      min-height: 100dvh;
       margin: 0 auto;
-      padding: 60px 24px 80px;
+      padding: 28px 0 34px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(28px, 5vw, 54px);
+      position: relative;
+      z-index: 1;
     }
 
-    .brand { margin-bottom: 48px; }
-    .brand h1 {
-      font-family: 'Instrument Serif', serif;
-      font-size: 4.2rem;
-      font-weight: 400;
-      letter-spacing: -0.03em;
-      line-height: 1;
-      color: var(--fg);
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
     }
-    .brand h1 em { font-style: italic; color: var(--accent); }
-    .brand p {
-      margin-top: 10px;
-      font-size: 0.78rem;
+
+    .wordmark {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--fg);
+      text-decoration: none;
+    }
+
+    .mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .mark svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent-strong);
+    }
+
+    .wordmark span {
+      font-size: 1.02rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .theme-toggle {
+      width: 48px;
+      height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--fg);
+      display: inline-grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-strong);
+    }
+
+    .theme-toggle:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .sun-icon,
+    body[data-theme="dark"] .moon-icon {
+      display: none;
+    }
+
+    body[data-theme="dark"] .sun-icon {
+      display: block;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(330px, 0.78fr);
+      align-items: start;
+      gap: clamp(28px, 6vw, 82px);
+      padding: clamp(8px, 2vw, 28px) 0 0;
+    }
+
+    .headline {
+      max-width: 620px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 34px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
       color: var(--muted);
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent-strong);
+      animation: breathe 2.8s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.5; transform: scale(0.84); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    h1 {
+      margin: 24px 0 18px;
+      font-size: clamp(3.2rem, 8vw, 7.4rem);
+      line-height: 0.88;
+      letter-spacing: 0;
+      font-weight: 800;
+    }
+
+    .inline-chip {
+      display: inline-grid;
+      place-items: center;
+      width: clamp(72px, 10vw, 124px);
+      height: clamp(44px, 6.2vw, 74px);
+      margin: 0 0.08em;
+      border-radius: 999px;
+      border: 1px solid rgba(88, 187, 237, 0.32);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.9), rgba(143, 211, 255, 0.42)),
+        var(--surface-solid);
+      vertical-align: middle;
+      box-shadow: 0 16px 46px -28px rgba(64, 128, 171, 0.78);
+    }
+
+    .inline-chip svg {
+      width: 42%;
+      height: 42%;
+      color: var(--accent-strong);
+    }
+
+    .intro {
+      max-width: 58ch;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.8vw, 1.18rem);
+      line-height: 1.68;
+    }
+
+    .download-panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: clamp(18px, 3vw, 28px);
+      backdrop-filter: blur(22px);
+      animation: panelIn 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .field-label {
+      display: block;
+      margin: 0 0 10px;
+      color: var(--fg);
+      font-size: 0.92rem;
+      font-weight: 700;
     }
 
     textarea {
       width: 100%;
-      padding: 18px 20px;
-      border: 1.5px solid var(--card-border);
-      border-radius: var(--radius);
-      background: var(--card);
+      min-height: 132px;
+      margin: 0;
+      padding: 18px 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-solid);
       color: var(--fg);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.88rem;
       outline: none;
-      resize: none;
-      min-height: 56px;
-      transition: border-color 0.25s, box-shadow 0.25s;
-      margin-bottom: 6px;
+      resize: vertical;
+      font-size: 1rem;
+      line-height: 1.5;
+      transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
     }
+
     textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(232, 93, 42, 0.08);
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 0 4px rgba(143, 211, 255, 0.24);
     }
-    textarea::placeholder { color: var(--muted); }
+
+    textarea::placeholder {
+      color: var(--faint);
+    }
 
     .hint {
-      font-size: 0.7rem;
+      margin: 10px 0 18px;
       color: var(--muted);
-      margin-bottom: 20px;
-      letter-spacing: 0.02em;
+      font-size: 0.9rem;
+      line-height: 1.45;
     }
 
     .controls {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 6px;
+      display: grid;
+      grid-template-columns: auto minmax(150px, 1fr);
+      gap: 12px;
       align-items: center;
     }
+
     .pill-group {
-      display: flex;
-      border: 1.5px solid var(--card-border);
-      border-radius: 10px;
-      overflow: hidden;
-      background: var(--card);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(72px, 1fr));
+      padding: 5px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-solid);
     }
+
     .pill {
-      padding: 9px 18px;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.76rem;
-      border: none;
+      border: 0;
+      border-radius: 999px;
       background: transparent;
       color: var(--muted);
+      padding: 10px 16px;
       cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      transition: color 180ms ease, background 180ms ease, transform 180ms ease;
     }
-    .pill.active { background: var(--fg); color: var(--bg); }
-    .pill:not(.active):hover { color: var(--fg); }
+
+    .pill:hover {
+      color: var(--fg);
+    }
+
+    .pill.active {
+      background: var(--accent);
+      color: #10202a;
+    }
+
+    .fetch-btn,
+    .dl-all-btn,
+    .card-dl-btn {
+      border: 0;
+      border-radius: 999px;
+      background: var(--fg);
+      color: var(--bg);
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0;
+      transition: transform 180ms ease, background 180ms ease, opacity 180ms ease;
+    }
 
     .fetch-btn {
-      flex: 1;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 10px;
+      padding: 12px 22px;
       background: var(--accent);
-      color: #fff;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.82rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      color: #10202a;
     }
-    .fetch-btn:hover { background: var(--accent-hover); }
-    .fetch-btn:active { transform: scale(0.98); }
-    .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-    /* Cards */
-    .cards { margin-top: 24px; }
+    .fetch-btn:hover,
+    .pill.active:hover {
+      background: var(--accent-strong);
+    }
+
+    .fetch-btn:active,
+    .dl-all-btn:active,
+    .card-dl-btn:active {
+      transform: translateY(1px) scale(0.99);
+    }
+
+    .fetch-btn:disabled,
+    .dl-all-btn:disabled,
+    .card-dl-btn:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .cards {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
 
     .card {
-      display: flex;
-      gap: 14px;
-      border: 1.5px solid var(--card-border);
-      border-radius: var(--radius);
-      background: var(--card);
-      padding: 14px;
-      margin-bottom: 10px;
-      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-solid);
+      box-shadow: 0 18px 46px -36px rgba(64, 128, 171, 0.48);
+      animation: cardIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(12px); }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     .card-thumb {
-      width: 120px;
-      min-width: 120px;
-      height: 80px;
-      border-radius: 8px;
+      width: 132px;
+      height: 88px;
+      border-radius: 18px;
       overflow: hidden;
-      background: var(--card-border);
-      flex-shrink: 0;
+      background: var(--surface-muted);
       position: relative;
     }
+
     .card-thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
-    /* No-thumbnail icon */
-    .card-thumb .no-thumb {
+
+    .card-thumb .no-thumb,
+    .card-error-icon {
       width: 100%;
       height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-    }
-    .card-thumb .no-thumb svg {
-      width: 28px;
-      height: 28px;
-      opacity: 0.5;
+      display: grid;
+      place-items: center;
+      color: var(--faint);
+      background: linear-gradient(135deg, var(--surface-muted), var(--surface-solid));
     }
 
-    /* Shimmer skeleton for loading state */
-    .card-thumb.loading {
-      background: var(--shimmer);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
+    .card-thumb .no-thumb svg,
+    .card-error-icon svg {
+      width: 28px;
+      height: 28px;
     }
+
+    .card-thumb.loading,
     .skeleton-line {
-      height: 12px;
-      border-radius: 4px;
       background: var(--shimmer);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      margin-bottom: 6px;
+      background-size: 220% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
     }
-    .skeleton-line.short { width: 40%; height: 10px; }
-    .skeleton-line.medium { width: 75%; }
+
+    .skeleton-line {
+      height: 13px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .skeleton-line.short {
+      width: 42%;
+      height: 11px;
+    }
+
+    .skeleton-line.medium {
+      width: 78%;
+    }
+
     @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
+      0% { background-position: 180% 0; }
+      100% { background-position: -180% 0; }
     }
 
     .card-body {
-      flex: 1;
       min-width: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
+
     .card-title {
-      font-family: 'Instrument Serif', serif;
-      font-size: 1rem;
-      line-height: 1.3;
+      margin: 0 0 4px;
       color: var(--fg);
-      margin-bottom: 2px;
+      font-size: 1.02rem;
+      font-weight: 700;
+      line-height: 1.25;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
     .card-meta {
-      font-size: 0.68rem;
+      margin-bottom: 10px;
       color: var(--muted);
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
     }
 
     .card-actions {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
       flex-wrap: wrap;
     }
 
     .card-dl-btn {
-      padding: 6px 14px;
-      border: none;
-      border-radius: 7px;
-      background: var(--fg);
+      min-height: 38px;
+      padding: 8px 15px;
       color: var(--bg);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
+      font-size: 0.86rem;
     }
-    .card-dl-btn:hover { background: #2d2d2a; }
-    .card-dl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .card-dl-btn.done { background: var(--success); color: #fff; }
-    .card-dl-btn.error { background: var(--error); color: #fff; }
+
+    .card-dl-btn:hover,
+    .dl-all-btn:hover {
+      background: #253746;
+    }
+
+    body[data-theme="dark"] .card-dl-btn:hover,
+    body[data-theme="dark"] .dl-all-btn:hover {
+      background: #d7f1ff;
+      color: #10202a;
+    }
+
+    .card-dl-btn.done {
+      background: var(--success);
+      color: #ffffff;
+    }
 
     .card-status {
-      font-size: 0.68rem;
       color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      overflow-wrap: anywhere;
     }
-    .card-status.downloading { color: var(--accent); }
-    .card-status.done { color: var(--success); }
-    .card-status.error { color: var(--error); }
+
+    .card-status.downloading {
+      color: var(--accent-strong);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: currentColor;
+      animation: breathe 1.2s ease-in-out infinite;
+    }
+
+    .card-status.done {
+      color: var(--success);
+    }
+
+    .card-status.error,
+    .card-error-msg {
+      color: var(--error);
+    }
 
     .q-chip {
-      padding: 4px 10px;
-      border: 1.5px solid var(--card-border);
-      border-radius: 6px;
+      min-height: 34px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
       background: transparent;
       color: var(--muted);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.65rem;
       cursor: pointer;
-      transition: all 0.2s;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      transition: border-color 180ms ease, color 180ms ease, background 180ms ease, transform 180ms ease;
     }
-    .q-chip.active {
-      border-color: var(--fg);
-      color: var(--fg);
-      background: rgba(26,26,24,0.04);
-    }
-    .q-chip:hover:not(.active) { border-color: var(--muted); }
 
-    /* Error card */
+    .q-chip:hover {
+      border-color: var(--accent-strong);
+      color: var(--fg);
+    }
+
+    .q-chip.active {
+      border-color: transparent;
+      background: var(--accent-soft);
+      color: var(--fg);
+    }
+
     .card.card-error {
-      border-color: rgba(196, 61, 61, 0.2);
-      background: rgba(196, 61, 61, 0.03);
+      border-color: rgba(209, 79, 98, 0.28);
+      background: rgba(209, 79, 98, 0.06);
     }
+
     .card-error-icon {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(196, 61, 61, 0.08);
       color: var(--error);
+      background: rgba(209, 79, 98, 0.1);
     }
-    .card-error-icon svg {
-      width: 24px;
-      height: 24px;
-    }
+
     .card-error-msg {
-      font-size: 0.72rem;
-      color: var(--error);
-      margin-top: 2px;
-      line-height: 1.4;
+      margin-top: 3px;
+      font-size: 0.86rem;
+      line-height: 1.45;
     }
+
     .card-error-url {
-      font-size: 0.65rem;
+      margin-top: 6px;
       color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      line-height: 1.4;
       word-break: break-all;
+    }
+
+    .dl-all-bar {
+      display: grid;
       margin-top: 4px;
     }
 
-    /* Download all bar */
-    .dl-all-bar {
+    .dl-all-btn {
+      padding: 13px 18px;
+      font-size: 0.94rem;
+    }
+
+    .supported {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(22px);
+    }
+
+    .supported-label {
+      padding: 16px 20px 0;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .marquee {
+      display: flex;
+      width: 100%;
+      overflow: hidden;
+      padding: 15px 0 18px;
+      mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+    }
+
+    .marquee-track {
       display: flex;
       gap: 10px;
-      margin-top: 16px;
-    }
-    .dl-all-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 10px;
-      background: var(--fg);
-      color: var(--bg);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.82rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-    .dl-all-btn:hover { background: #2d2d2a; }
-    .dl-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .spin {
-      display: inline-block;
-      width: 10px; height: 10px;
-      border: 2px solid currentColor;
-      border-right-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .footer {
-      margin-top: 48px;
-      text-align: center;
-      font-size: 0.68rem;
-      color: var(--muted);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      line-height: 1.8;
+      min-width: max-content;
+      padding-right: 10px;
+      animation: roll 34s linear infinite;
+      will-change: transform;
     }
 
-    /* Mobile */
-    @media (max-width: 500px) {
-      .brand h1 { font-size: 3rem; }
-      .page { padding: 40px 16px 60px; }
-      .card { flex-direction: column; gap: 10px; }
+    .supported:hover .marquee-track {
+      animation-play-state: paused;
+    }
+
+    .app-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 15px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-solid);
+      color: var(--fg);
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    @keyframes roll {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(-50%, 0, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+
+      .marquee-track {
+        animation: none !important;
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        width: min(100% - 24px, 680px);
+        padding-top: 18px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        max-width: 8ch;
+      }
+
+      .download-panel {
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        width: min(100% - 20px, 520px);
+      }
+
+      .wordmark span {
+        font-size: 0.96rem;
+      }
+
+      .mark {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+      }
+
+      h1 {
+        font-size: clamp(3rem, 18vw, 4.8rem);
+      }
+
+      .inline-chip {
+        display: flex;
+        width: 74px;
+        height: 44px;
+        margin: 0.08em 0;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .fetch-btn {
+        width: 100%;
+      }
+
+      .card {
+        grid-template-columns: 1fr;
+      }
+
       .card-thumb {
         width: 100%;
-        min-width: unset;
-        height: 160px;
+        height: auto;
+        aspect-ratio: 16 / 9;
       }
-      .card-title { white-space: normal; }
-      .controls { flex-wrap: wrap; }
-      .fetch-btn { width: 100%; }
+
+      .card-title {
+        white-space: normal;
+      }
+
+      .card-actions {
+        align-items: stretch;
+      }
+
+      .card-dl-btn {
+        flex: 1 1 120px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="brand">
-      <h1>Re<em>Clip</em></h1>
-      <p>Free media downloader</p>
-    </div>
+    <header class="topbar" aria-label="Application header">
+      <a class="wordmark" href="/" aria-label="Shayloader home">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v11"></path>
+            <path d="m7 10 5 5 5-5"></path>
+            <path d="M5 20h14"></path>
+          </svg>
+        </span>
+        <span>Shayloader</span>
+      </a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Switch theme">
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2"></path>
+          <path d="M12 20v2"></path>
+          <path d="m4.93 4.93 1.41 1.41"></path>
+          <path d="m17.66 17.66 1.41 1.41"></path>
+          <path d="M2 12h2"></path>
+          <path d="M20 12h2"></path>
+          <path d="m6.34 17.66-1.41 1.41"></path>
+          <path d="m19.07 4.93-1.41 1.41"></path>
+        </svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.6 14.4A8 8 0 0 1 9.6 3.4a8.8 8.8 0 1 0 11 11Z"></path>
+        </svg>
+      </button>
+    </header>
 
-    <textarea id="urls" placeholder="Paste one or more URLs..." rows="2"></textarea>
-    <p class="hint">Multiple links? Separate with spaces, commas, or newlines.</p>
+    <main class="hero">
+      <section class="headline" aria-labelledby="page-title">
+        <div class="eyebrow">MP4 and MP3 downloads</div>
+        <h1 id="page-title" aria-label="Shayloader">Shay<span class="inline-chip" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5.14v13.72c0 .78.86 1.25 1.52.82l10.47-6.86a.98.98 0 0 0 0-1.64L9.52 4.32A.98.98 0 0 0 8 5.14Z"></path>
+          </svg>
+        </span>loader</h1>
+        <p class="intro">Paste one link or a full batch, choose video or audio, and keep the downloads moving without extra steps.</p>
+      </section>
 
-    <div class="controls">
-      <div class="pill-group">
-        <button class="pill active" data-format="video" onclick="setFormat(this)">MP4</button>
-        <button class="pill" data-format="audio" onclick="setFormat(this)">MP3</button>
+      <section class="download-panel" aria-label="Download controls">
+        <label class="field-label" for="urls">Links to fetch</label>
+        <textarea id="urls" placeholder="Paste one or more URLs..." rows="4"></textarea>
+        <p class="hint">Separate multiple links with spaces, commas, or new lines.</p>
+
+        <div class="controls">
+          <div class="pill-group" aria-label="Download format">
+            <button class="pill active" type="button" data-format="video" onclick="setFormat(this)">MP4</button>
+            <button class="pill" type="button" data-format="audio" onclick="setFormat(this)">MP3</button>
+          </div>
+          <button class="fetch-btn" id="goBtn" type="button" onclick="go()">Fetch</button>
+        </div>
+
+        <div id="cards" class="cards" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="supported" aria-label="Supported apps">
+      <div class="supported-label">Supported apps and sites</div>
+      <div class="marquee">
+        <div class="marquee-track" aria-hidden="true">
+          <span class="app-chip">YouTube</span>
+          <span class="app-chip">TikTok</span>
+          <span class="app-chip">Instagram</span>
+          <span class="app-chip">Twitter/X</span>
+          <span class="app-chip">Reddit</span>
+          <span class="app-chip">Facebook</span>
+          <span class="app-chip">Vimeo</span>
+          <span class="app-chip">Twitch</span>
+          <span class="app-chip">Dailymotion</span>
+          <span class="app-chip">SoundCloud</span>
+          <span class="app-chip">Loom</span>
+          <span class="app-chip">Streamable</span>
+          <span class="app-chip">Pinterest</span>
+          <span class="app-chip">Tumblr</span>
+          <span class="app-chip">Threads</span>
+          <span class="app-chip">LinkedIn</span>
+          <span class="app-chip">1000+ more</span>
+          <span class="app-chip">YouTube</span>
+          <span class="app-chip">TikTok</span>
+          <span class="app-chip">Instagram</span>
+          <span class="app-chip">Twitter/X</span>
+          <span class="app-chip">Reddit</span>
+          <span class="app-chip">Facebook</span>
+          <span class="app-chip">Vimeo</span>
+          <span class="app-chip">Twitch</span>
+          <span class="app-chip">Dailymotion</span>
+          <span class="app-chip">SoundCloud</span>
+          <span class="app-chip">Loom</span>
+          <span class="app-chip">Streamable</span>
+          <span class="app-chip">Pinterest</span>
+          <span class="app-chip">Tumblr</span>
+          <span class="app-chip">Threads</span>
+          <span class="app-chip">LinkedIn</span>
+          <span class="app-chip">1000+ more</span>
+        </div>
       </div>
-      <button class="fetch-btn" id="goBtn" onclick="go()">Fetch</button>
-    </div>
-
-    <div id="cards" class="cards"></div>
-
-    <div class="footer">
-      YouTube &middot; TikTok &middot; Instagram &middot; Twitter/X &middot; Reddit &middot; Facebook<br>
-      Vimeo &middot; Twitch &middot; Dailymotion &middot; SoundCloud &middot; Loom &middot; Streamable<br>
-      Pinterest &middot; Tumblr &middot; Threads &middot; LinkedIn &middot; 1000+ more
-    </div>
+    </footer>
   </div>
 
   <script>
+    const THEME_KEY = 'shayloader-theme';
     let currentFormat = 'video';
     let cardData = [];
+
+    function applyTheme(theme) {
+      document.body.dataset.theme = theme;
+      const toggle = document.getElementById('themeToggle');
+      const nextTheme = theme === 'dark' ? 'light' : 'dark';
+      toggle.setAttribute('aria-label', `Switch to ${nextTheme} mode`);
+    }
+
+    function initTheme() {
+      const stored = localStorage.getItem(THEME_KEY);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(stored || (prefersDark ? 'dark' : 'light'));
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const next = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
+
+    initTheme();
 
     function setFormat(btn) {
       document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentFormat = btn.dataset.format;
+      cardData.forEach((card, idx) => {
+        if (card.status && card.status !== 'loading' && card.status !== 'info-error') {
+          renderCard(idx);
+        }
+      });
     }
 
     function parseUrls(text) {
@@ -434,6 +923,10 @@
       return d.innerHTML;
     }
 
+    function attr(s) {
+      return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function friendlyError(err) {
       if (err.includes('Unsupported URL')) return 'This URL is not supported';
       if (err.includes('Video unavailable')) return 'Video is unavailable or private';
@@ -442,13 +935,16 @@
       if (err.includes('HTTP Error 404')) return 'Video not found';
       if (err.includes('copyright')) return 'Video blocked due to copyright';
       if (err.includes('geo')) return 'Video not available in your region';
-      if (err.includes('timed out') || err.includes('Timed out')) return 'Request timed out — try again';
-      if (err.includes('network') || err.includes('Network')) return 'Network error — check your connection';
+      if (err.includes('timed out') || err.includes('Timed out')) return 'Request timed out - try again';
+      if (err.includes('network') || err.includes('Network')) return 'Network error - check your connection';
       return err.length > 80 ? err.slice(0, 80) + '...' : err;
     }
 
     document.getElementById('urls').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        go();
+      }
     });
 
     async function go() {
@@ -513,7 +1009,6 @@
         document.getElementById('cards').appendChild(el);
       }
 
-      // Loading skeleton
       if (c.status === 'loading') {
         el.className = 'card';
         el.innerHTML = `
@@ -526,7 +1021,6 @@
         return;
       }
 
-      // Error state
       if (c.status === 'info-error') {
         el.className = 'card card-error';
         el.innerHTML = `
@@ -544,36 +1038,35 @@
         return;
       }
 
-      // Ready / downloading / done / error states
       el.className = 'card';
       const isAudio = currentFormat === 'audio';
 
       let thumbHtml;
       if (isAudio) {
-        thumbHtml = `<div class="no-thumb" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`;
+        thumbHtml = `<div class="no-thumb" style="color:var(--accent-strong)"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.14v13.72c0 .78.86 1.25 1.52.82l10.47-6.86a.98.98 0 0 0 0-1.64L9.52 4.32A.98.98 0 0 0 8 5.14Z"/></svg></div>`;
       } else if (c.thumbnail) {
-        thumbHtml = `<img src="${c.thumbnail}" alt="">`;
+        thumbHtml = `<img src="${attr(c.thumbnail)}" alt="">`;
       } else {
-        thumbHtml = `<div class="no-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
+        thumbHtml = `<div class="no-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="4"/><circle cx="8" cy="8" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`;
       }
 
       let qualityChips = '';
       if (!isAudio && c.formats && c.formats.length > 1) {
         qualityChips = c.formats.map(f =>
-          `<button class="q-chip${f.id === c.selectedFormatId ? ' active' : ''}" onclick="pickFormat(${idx}, '${f.id}')">${f.label}</button>`
+          `<button class="q-chip${f.id === c.selectedFormatId ? ' active' : ''}" type="button" data-format-id="${attr(f.id)}" onclick="pickFormatFromButton(${idx}, this)">${esc(f.label)}</button>`
         ).join('');
       }
 
       let actionHtml = '';
       if (c.status === 'ready') {
-        actionHtml = `<button class="card-dl-btn" onclick="dlCard(${idx})">Download</button>${qualityChips}`;
+        actionHtml = `<button class="card-dl-btn" type="button" onclick="dlCard(${idx})">Download</button>${qualityChips}`;
       } else if (c.status === 'downloading') {
-        actionHtml = `<span class="card-status downloading"><span class="spin"></span> Downloading...</span>`;
+        actionHtml = `<span class="card-status downloading"><span class="status-pulse" aria-hidden="true"></span>Downloading...</span>`;
       } else if (c.status === 'done') {
-        actionHtml = `<button class="card-dl-btn done" onclick="saveCard(${idx})">Save</button>
+        actionHtml = `<button class="card-dl-btn done" type="button" onclick="saveCard(${idx})">Save</button>
           <span class="card-status done">${esc(c.filename || '')}</span>`;
       } else if (c.status === 'error') {
-        actionHtml = `<button class="card-dl-btn" onclick="dlCard(${idx})">Retry</button>
+        actionHtml = `<button class="card-dl-btn" type="button" onclick="dlCard(${idx})">Retry</button>
           <span class="card-status error">${esc(friendlyError(c.error || 'Download failed'))}</span>`;
       }
 
@@ -581,7 +1074,7 @@
         <div class="card-thumb">${thumbHtml}</div>
         <div class="card-body">
           <div class="card-title">${esc(c.title || 'Untitled')}</div>
-          <div class="card-meta">${esc(c.uploader)}${c.duration ? ' · ' + fmtDur(c.duration) : ''}</div>
+          <div class="card-meta">${esc(c.uploader)}${c.duration ? ' - ' + fmtDur(c.duration) : ''}</div>
           <div class="card-actions">${actionHtml}</div>
         </div>
       `;
@@ -594,13 +1087,17 @@
       const bar = document.createElement('div');
       bar.id = 'dl-all-bar';
       bar.className = 'dl-all-bar';
-      bar.innerHTML = `<button class="dl-all-btn" onclick="dlAll()">Download All</button>`;
+      bar.innerHTML = `<button class="dl-all-btn" type="button" onclick="dlAll()">Download All</button>`;
       document.getElementById('cards').appendChild(bar);
     }
 
     function pickFormat(idx, formatId) {
       cardData[idx].selectedFormatId = formatId;
       renderCard(idx);
+    }
+
+    function pickFormatFromButton(idx, btn) {
+      pickFormat(idx, btn.dataset.formatId);
     }
 
     async function dlCard(idx) {
@@ -674,7 +1171,10 @@
 
     async function dlAll() {
       const btn = document.querySelector('.dl-all-btn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Downloading...'; }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Downloading...';
+      }
 
       for (let i = 0; i < cardData.length; i++) {
         if (cardData[i].status === 'ready') {
@@ -682,7 +1182,10 @@
         }
       }
 
-      if (btn) { btn.disabled = false; btn.textContent = 'Download All'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Download All';
+      }
     }
   </script>
 </body>
